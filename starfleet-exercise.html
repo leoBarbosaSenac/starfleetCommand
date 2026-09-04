@@ -1,0 +1,1049 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Starfleet Command — Gerenciamento de Frota Espacial</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#060a12;
+    --bg-panel:#0e1626;
+    --bg-panel-alt:#121b2e;
+    --bg-code:#0a0f1c;
+    --border:#223049;
+    --border-soft:#182338;
+    --text:#e7edf7;
+    --text-dim:#8fa0b8;
+    --text-faint:#5b6a83;
+    --amber:#ffb454;
+    --amber-dim:#8a6631;
+    --cyan:#5cc8ff;
+    --cyan-dim:#2f5570;
+    --violet:#b990ff;
+    --violet-dim:#5a4a80;
+    --danger:#ff6b6b;
+    --success:#63d6a0;
+    --radius:10px;
+    --maxw:760px;
+  }
+
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--text);
+    font-family:'IBM Plex Sans', sans-serif;
+    font-size:16px;
+    line-height:1.65;
+    -webkit-font-smoothing:antialiased;
+  }
+
+  /* subtle starfield backdrop */
+  body::before{
+    content:"";
+    position:fixed;
+    inset:0;
+    z-index:-1;
+    background-image:
+      radial-gradient(1px 1px at 20% 30%, rgba(255,255,255,.35), transparent),
+      radial-gradient(1px 1px at 70% 15%, rgba(255,255,255,.25), transparent),
+      radial-gradient(1px 1px at 40% 70%, rgba(255,255,255,.3), transparent),
+      radial-gradient(1.5px 1.5px at 85% 60%, rgba(255,255,255,.2), transparent),
+      radial-gradient(1px 1px at 10% 85%, rgba(255,255,255,.3), transparent),
+      radial-gradient(1px 1px at 60% 90%, rgba(255,255,255,.2), transparent),
+      linear-gradient(180deg, #050810 0%, #060a12 40%, #060a14 100%);
+    background-repeat:no-repeat;
+    background-size:cover;
+  }
+
+  h1,h2,h3,h4{
+    font-family:'Space Grotesk', sans-serif;
+    font-weight:600;
+    color:var(--text);
+    line-height:1.25;
+  }
+
+  a{color:var(--cyan);}
+
+  code, pre, .mono{
+    font-family:'IBM Plex Mono', monospace;
+  }
+
+  /* ---------- Layout shell ---------- */
+  .shell{
+    display:grid;
+    grid-template-columns:260px 1fr;
+    min-height:100vh;
+  }
+
+  /* ---------- Sidebar ---------- */
+  .sidebar{
+    position:sticky;
+    top:0;
+    align-self:start;
+    height:100vh;
+    overflow-y:auto;
+    border-right:1px solid var(--border-soft);
+    padding:28px 18px 40px;
+    background:rgba(9,13,22,.6);
+    backdrop-filter:blur(6px);
+  }
+  .sidebar-brand{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    margin-bottom:26px;
+    padding:0 6px;
+  }
+  .sidebar-brand .dot{
+    width:9px;height:9px;border-radius:50%;
+    background:var(--amber);
+    box-shadow:0 0 8px var(--amber);
+  }
+  .sidebar-brand span{
+    font-family:'Space Grotesk', sans-serif;
+    font-size:13px;
+    letter-spacing:.04em;
+    color:var(--text-dim);
+  }
+  .navgroup{margin-bottom:20px;}
+  .navgroup h5{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:11px;
+    color:var(--text-faint);
+    margin:0 0 8px 6px;
+    font-weight:500;
+  }
+  .navgroup a{
+    display:block;
+    padding:6px 8px;
+    font-size:13.5px;
+    color:var(--text-dim);
+    text-decoration:none;
+    border-radius:6px;
+    border-left:2px solid transparent;
+    transition:color .15s ease, border-color .15s ease, background .15s ease;
+  }
+  .navgroup a:hover{color:var(--text); background:rgba(255,255,255,.03);}
+  .navgroup a.active{
+    color:var(--amber);
+    border-left-color:var(--amber);
+    background:rgba(255,180,84,.06);
+  }
+
+  .menu-toggle{
+    display:none;
+    position:fixed;
+    top:16px; left:16px;
+    z-index:50;
+    background:var(--bg-panel);
+    border:1px solid var(--border);
+    color:var(--text);
+    width:40px;height:40px;
+    border-radius:8px;
+    font-size:18px;
+    align-items:center;justify-content:center;
+    cursor:pointer;
+  }
+
+  /* ---------- Main content ---------- */
+  main{
+    padding:64px 32px 120px;
+    display:flex;
+    justify-content:center;
+  }
+  .content{
+    max-width:var(--maxw);
+    width:100%;
+  }
+
+  .hero{
+    margin-bottom:56px;
+    padding-bottom:36px;
+    border-bottom:1px solid var(--border-soft);
+  }
+  .hero .eyebrow{
+    display:inline-flex;
+    align-items:center;
+    gap:8px;
+    font-family:'IBM Plex Mono', monospace;
+    font-size:12px;
+    color:var(--cyan);
+    margin-bottom:18px;
+  }
+  .hero .eyebrow::before{
+    content:"";
+    width:22px;height:1px;
+    background:var(--cyan);
+  }
+  .hero h1{
+    font-size:clamp(30px, 5vw, 44px);
+    margin:0 0 14px;
+    letter-spacing:-.01em;
+  }
+  .hero p.lead{
+    color:var(--text-dim);
+    font-size:17px;
+    max-width:60ch;
+    margin:0;
+  }
+  .hero .stardate{
+    margin-top:22px;
+    font-family:'IBM Plex Mono', monospace;
+    font-size:12px;
+    color:var(--text-faint);
+  }
+
+  section{
+    margin-bottom:52px;
+    scroll-margin-top:24px;
+  }
+
+  .part-tag{
+    display:inline-block;
+    font-family:'IBM Plex Mono', monospace;
+    font-size:11px;
+    letter-spacing:.03em;
+    padding:3px 9px;
+    border-radius:5px;
+    margin-bottom:10px;
+    border:1px solid;
+  }
+  .part-tag.base{color:var(--amber); border-color:var(--amber-dim); background:rgba(255,180,84,.06);}
+  .part-tag.iface{color:var(--cyan); border-color:var(--cyan-dim); background:rgba(92,200,255,.06);}
+  .part-tag.class{color:var(--violet); border-color:var(--violet-dim); background:rgba(185,144,255,.06);}
+  .part-tag.system{color:var(--success); border-color:#2d6b52; background:rgba(99,214,160,.06);}
+  .part-tag.think{color:var(--text-dim); border-color:var(--border); background:rgba(255,255,255,.03);}
+
+  section h2{
+    font-size:23px;
+    margin:0 0 6px;
+  }
+  section h3{
+    font-size:17px;
+    margin:26px 0 8px;
+    color:var(--text);
+  }
+  section p{
+    color:#cdd7e6;
+    margin:12px 0;
+  }
+  section ul, section ol{
+    color:#cdd7e6;
+    padding-left:22px;
+    margin:12px 0;
+  }
+  section li{margin:5px 0;}
+  section strong{color:var(--text);}
+
+  code.inline{
+    background:var(--bg-code);
+    border:1px solid var(--border-soft);
+    padding:1px 6px;
+    border-radius:5px;
+    font-size:.88em;
+    color:var(--amber);
+  }
+
+  .code-block{
+    background:var(--bg-code);
+    border:1px solid var(--border);
+    border-radius:var(--radius);
+    margin:14px 0;
+    overflow:hidden;
+  }
+  .code-block .cb-head{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    padding:7px 14px;
+    background:var(--bg-panel-alt);
+    border-bottom:1px solid var(--border);
+    font-family:'IBM Plex Mono', monospace;
+    font-size:11px;
+    color:var(--text-faint);
+    letter-spacing:.02em;
+  }
+  .code-block pre{
+    margin:0;
+    padding:14px 16px;
+    overflow-x:auto;
+    font-size:13.5px;
+    line-height:1.6;
+    color:#c3cee0;
+  }
+  .code-block .dots{display:flex; gap:5px;}
+  .code-block .dots span{width:7px;height:7px;border-radius:50%;background:var(--border);}
+
+  .callout{
+    border-radius:var(--radius);
+    border:1px solid var(--border);
+    padding:18px 20px;
+    margin:18px 0;
+    background:var(--bg-panel);
+  }
+  .callout h4{
+    margin:0 0 8px;
+    font-size:15px;
+    display:flex;
+    align-items:center;
+    gap:8px;
+  }
+  .callout p, .callout li{color:#cdd7e6; margin:8px 0;}
+  .callout.rule{border-left:3px solid var(--amber);}
+  .callout.rule h4{color:var(--amber);}
+  .callout.abstract{border-left:3px solid var(--violet); background:rgba(185,144,255,.05);}
+  .callout.abstract h4{color:var(--violet);}
+  .callout.tree{border-left:3px solid var(--cyan);}
+  .callout.tree h4{color:var(--cyan);}
+  .callout.reflect{border-left:3px solid var(--text-faint);}
+
+  .tree-diagram{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:13px;
+    color:var(--text-dim);
+    white-space:pre;
+    overflow-x:auto;
+    background:var(--bg-code);
+    border:1px solid var(--border-soft);
+    border-radius:8px;
+    padding:14px 16px;
+    margin:14px 0;
+  }
+
+  .fs-tree{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:13px;
+    color:var(--text-dim);
+    background:var(--bg-code);
+    border:1px solid var(--border-soft);
+    border-radius:8px;
+    padding:14px 16px;
+    white-space:pre;
+    overflow-x:auto;
+  }
+
+  .checklist{
+    list-style:none;
+    padding-left:0;
+  }
+  .checklist li{
+    padding-left:26px;
+    position:relative;
+  }
+  .checklist li::before{
+    content:"▸";
+    position:absolute;
+    left:0;
+    color:var(--amber);
+  }
+
+  .qa-grid{
+    display:grid;
+    gap:14px;
+  }
+  .qa-item{
+    border:1px solid var(--border-soft);
+    border-radius:8px;
+    padding:14px 16px;
+    background:var(--bg-panel);
+  }
+  .qa-item .qnum{
+    font-family:'IBM Plex Mono', monospace;
+    color:var(--cyan);
+    font-size:12px;
+    margin-bottom:4px;
+    display:block;
+  }
+  .qa-item p{margin:4px 0 0; color:#cdd7e6;}
+
+  .criteria-grid{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:10px 18px;
+  }
+  .criteria-grid div{
+    color:#cdd7e6;
+    font-size:14.5px;
+    padding:6px 0;
+    border-bottom:1px dashed var(--border-soft);
+  }
+  .criteria-grid strong{color:var(--amber);}
+
+  hr.div{
+    border:none;
+    border-top:1px solid var(--border-soft);
+    margin:40px 0;
+  }
+
+  footer{
+    max-width:var(--maxw);
+    margin:0 auto;
+    padding:0 0 60px;
+    color:var(--text-faint);
+    font-size:13px;
+    text-align:center;
+  }
+
+  @media (max-width: 860px){
+    .shell{grid-template-columns:1fr;}
+    .sidebar{
+      position:fixed;
+      left:0; top:0;
+      width:78%;
+      max-width:300px;
+      transform:translateX(-100%);
+      transition:transform .25s ease;
+      z-index:40;
+      box-shadow:20px 0 40px rgba(0,0,0,.4);
+    }
+    .sidebar.open{transform:translateX(0);}
+    .menu-toggle{display:flex;}
+    main{padding:88px 20px 100px;}
+    .criteria-grid{grid-template-columns:1fr;}
+  }
+</style>
+</head>
+<body>
+
+<button class="menu-toggle" id="menuToggle" aria-label="Abrir menu">☰</button>
+
+<div class="shell">
+  <nav class="sidebar" id="sidebar">
+    <div class="sidebar-brand"><span class="dot"></span><span>STARFLEET&nbsp;COMMAND</span></div>
+
+    <div class="navgroup">
+      <h5>INÍCIO</h5>
+      <a href="#contexto">Contexto</a>
+      <a href="#objetivos">Objetivos</a>
+      <a href="#estrutura">Estrutura do projeto</a>
+    </div>
+
+    <div class="navgroup">
+      <h5>FUNDAMENTOS</h5>
+      <a href="#parte1">1 · Spacecraft (abstract)</a>
+      <a href="#parte2">2 · CombatCapable</a>
+      <a href="#parte3">3 · CargoCarrier</a>
+      <a href="#parte4">4 · Exploratory</a>
+    </div>
+
+    <div class="navgroup">
+      <h5>AS NAVES</h5>
+      <a href="#parte5">5 · Fighter</a>
+      <a href="#parte6">6 · TransportShip</a>
+      <a href="#parte7">7 · ExplorationShip</a>
+      <a href="#parte8">8 · MultiPurposeShip</a>
+    </div>
+
+    <div class="navgroup">
+      <h5>POLIMORFISMO</h5>
+      <a href="#parte9">9 · Funções com interfaces</a>
+      <a href="#parte10">10 · O conceito importante</a>
+      <a href="#parte11">11 · Interface como tipo</a>
+      <a href="#parte12">12 · Vários grupos</a>
+    </div>
+
+    <div class="navgroup">
+      <h5>APROFUNDANDO</h5>
+      <a href="#parte13">13 · Repairable</a>
+      <a href="#parte14">14 · Interfaces não são classes</a>
+      <a href="#parte15">15 · Encapsulamento</a>
+      <a href="#parte16">16 · Interface como contrato</a>
+    </div>
+
+    <div class="navgroup">
+      <h5>O SISTEMA</h5>
+      <a href="#parte17">17 · Fleet</a>
+      <a href="#parte18">18 · Buscar por capacidade</a>
+      <a href="#parte19">19 · main.ts</a>
+    </div>
+
+    <div class="navgroup">
+      <h5>DESAFIOS</h5>
+      <a href="#desafio-adicional">Novas capacidades</a>
+      <a href="#desafio-final">Projeto aberto</a>
+    </div>
+
+    <div class="navgroup">
+      <h5>ENTREGA</h5>
+      <a href="#perguntas">Perguntas de reflexão</a>
+      <a href="#criterios">Critérios de avaliação</a>
+      <a href="#conclusao">Ideia central</a>
+    </div>
+  </nav>
+
+  <main>
+    <div class="content">
+
+      <div class="hero">
+        <div class="eyebrow">EXERCÍCIO · PROGRAMAÇÃO ORIENTADA A OBJETOS · TYPESCRIPT</div>
+        <h1>Starfleet Command</h1>
+        <p class="lead">Gerenciamento de uma frota espacial. Naves diferentes, comportamentos diferentes — e um mesmo sistema capaz de lidar com todas elas através de classes, herança e interfaces.</p>
+        <div class="stardate">registro de missão · classes abstratas, interfaces e polimorfismo</div>
+      </div>
+
+      <section id="contexto">
+        <span class="part-tag think">CONTEXTO</span>
+        <h2>A missão</h2>
+        <p>Você foi contratado para desenvolver um sistema de gerenciamento de uma frota de espaçonaves para uma grande organização de exploração espacial.</p>
+        <p>A organização possui diferentes tipos de espaçonaves, cada uma com características e comportamentos próprios: naves de exploração, naves de transporte, naves de combate, sondas automatizadas e outros tipos de veículos espaciais.</p>
+        <p>Apesar de serem diferentes, todas elas precisam participar do sistema de gerenciamento da frota. O problema é que cada tipo de nave funciona de uma maneira diferente:</p>
+        <ul>
+          <li>Uma nave de combate pode <strong>atacar</strong>.</li>
+          <li>Uma nave de transporte pode <strong>transportar cargas</strong>.</li>
+          <li>Uma nave de exploração pode <strong>explorar planetas</strong>.</li>
+          <li>Uma sonda pode <strong>coletar dados</strong> automaticamente.</li>
+        </ul>
+        <p>Além disso, algumas naves podem executar mais de uma dessas funções. Seu objetivo é desenvolver um sistema orientado a objetos capaz de representar essa frota.</p>
+      </section>
+
+      <section id="objetivos">
+        <span class="part-tag think">OBJETIVOS</span>
+        <h2>O que você vai praticar</h2>
+        <ul class="checklist">
+          <li>Classes, objetos, constructors, atributos e métodos</li>
+          <li>Encapsulamento — <code class="inline">private</code> e <code class="inline">public</code></li>
+          <li>Getters e setters</li>
+          <li>Herança e <strong>classes abstratas</strong></li>
+          <li>Interfaces e implementação de interfaces</li>
+          <li>Uma classe implementando mais de uma interface</li>
+          <li>Uso de objetos através de tipos de interface (polimorfismo)</li>
+          <li>Arrays de objetos e arrays tipados por interface</li>
+          <li>Separação de classes em arquivos e organização de um pequeno sistema</li>
+        </ul>
+      </section>
+
+      <section id="estrutura">
+        <span class="part-tag think">ESTRUTURA</span>
+        <h2>Organização do projeto</h2>
+        <p>Organize seu projeto aproximadamente desta forma. Você pode criar outros arquivos caso considere necessário.</p>
+        <div class="fs-tree">src/
+├── interfaces/
+│   ├── CombatCapable.ts
+│   ├── CargoCarrier.ts
+│   ├── Exploratory.ts
+│   └── Repairable.ts
+│
+├── ships/
+│   ├── Spacecraft.ts          (classe abstrata)
+│   ├── Fighter.ts
+│   ├── TransportShip.ts
+│   ├── ExplorationShip.ts
+│   └── MultiPurposeShip.ts
+│
+├── fleet/
+│   └── Fleet.ts
+│
+└── main.ts</div>
+      </section>
+
+      <hr class="div">
+
+      <!-- PARTE 1 -->
+      <section id="parte1">
+        <span class="part-tag base">PARTE 1</span>
+        <h2>A classe base — <code class="inline">Spacecraft</code></h2>
+        <p>Crie uma classe chamada <code class="inline">Spacecraft</code>. Ela deverá representar uma espaçonave genérica.</p>
+
+        <div class="callout abstract">
+          <h4>🧬 Antes de começar: o que é uma classe <em>abstract</em>?</h4>
+          <p>Pense bem: nenhuma nave da sua frota é "só uma espaçonave genérica". Toda nave real é um <code class="inline">Fighter</code>, um <code class="inline">TransportShip</code>, um <code class="inline">ExplorationShip</code> ou algo do tipo. <code class="inline">Spacecraft</code> existe apenas para reunir o que é comum a todas elas — não faz sentido alguém escrever <code class="inline">new Spacecraft(...)</code> e criar uma nave "sem tipo".</p>
+          <p>Uma <strong>classe abstrata</strong> é exatamente isso: uma classe que serve de base para herança, mas que <strong>não pode ser instanciada diretamente</strong>. O TypeScript bloqueia qualquer tentativa de <code class="inline">new Spacecraft(...)</code> — só é permitido criar objetos das classes filhas, como <code class="inline">Fighter</code> ou <code class="inline">TransportShip</code>.</p>
+          <p>Na prática, é só adicionar a palavra-chave <code class="inline">abstract</code> antes de <code class="inline">class</code>:</p>
+          <div class="code-block">
+            <div class="cb-head"><span>TypeScript</span><div class="dots"><span></span><span></span><span></span></div></div>
+            <pre>abstract class Spacecraft {
+    // atributos e métodos normalmente...
+}
+
+// ❌ Erro de compilação:
+const nave = new Spacecraft(1, "Genérica", 100, 100);
+
+// ✅ Funciona normalmente, porque Fighter herda de Spacecraft:
+const caça = new Fighter(1, "Valkyrie", 100, 100, 25);</pre>
+          </div>
+          <p>Tudo o que você já sabe sobre herança continua valendo: <code class="inline">extends Spacecraft</code> funciona do mesmo jeito, os atributos e métodos concretos são herdados normalmente. A única diferença é que <code class="inline">Spacecraft</code> deixa de ser um objeto que existe sozinho no mundo — ela passa a existir apenas <em>através</em> das suas subclasses.</p>
+          <p>Uma classe abstrata também pode declarar <strong>métodos abstratos</strong> — métodos sem corpo, que apenas obrigam cada subclasse a implementar sua própria versão. Isso é opcional neste exercício, mas se quiser ir além, experimente tornar <code class="inline">showStatus()</code> abstrato e implementá-lo de forma diferente em cada nave.</p>
+        </div>
+
+        <p>A classe deve possuir os seguintes atributos:</p>
+        <div class="code-block">
+          <div class="cb-head"><span>atributos</span></div>
+          <pre>id
+name
+fuel
+health</pre>
+        </div>
+        <p>Utilize encapsulamento. Os atributos não devem ser acessados diretamente de fora da classe:</p>
+        <div class="code-block">
+          <div class="cb-head"><span>TypeScript</span></div>
+          <pre>private id: number;</pre>
+        </div>
+        <p>A classe deve possuir um <code class="inline">constructor</code> capaz de receber os valores necessários para criar uma nave, além de getters para consultar os atributos. Exemplo:</p>
+        <div class="code-block">
+          <div class="cb-head"><span>TypeScript</span></div>
+          <pre>getFuel(): number</pre>
+        </div>
+        <p>Crie também métodos para:</p>
+        <div class="code-block">
+          <div class="cb-head"><span>métodos</span></div>
+          <pre>refuel()
+takeDamage()
+repair()
+showStatus()</pre>
+        </div>
+
+        <div class="callout rule">
+          <h4>⚠️ Regras</h4>
+          <ul>
+            <li><code class="inline">fuel</code> não pode ficar abaixo de <code class="inline">0</code>.</li>
+            <li><code class="inline">health</code> deve permanecer entre <code class="inline">0</code> e <code class="inline">100</code>.</li>
+            <li><code class="inline">takeDamage()</code> deve reduzir a vida da nave.</li>
+            <li><code class="inline">repair()</code> deve recuperar vida, sem ultrapassar <code class="inline">100</code>.</li>
+            <li><code class="inline">refuel()</code> deve aumentar o combustível.</li>
+          </ul>
+        </div>
+
+        <p>Crie também um método:</p>
+        <div class="code-block">
+          <div class="cb-head"><span>TypeScript</span></div>
+          <pre>isOperational(): boolean</pre>
+        </div>
+        <p>Esse método deverá retornar <code class="inline">true</code> caso a nave tenha vida maior que <code class="inline">0</code> e combustível maior que <code class="inline">0</code>.</p>
+      </section>
+
+      <!-- PARTE 2 -->
+      <section id="parte2">
+        <span class="part-tag iface">PARTE 2</span>
+        <h2>Interface <code class="inline">CombatCapable</code></h2>
+        <p>Nem toda nave é capaz de combater. Por isso, não seria interessante colocar um método <code class="inline">attack()</code> diretamente em <code class="inline">Spacecraft</code>.</p>
+        <p>Crie uma interface chamada <code class="inline">CombatCapable</code>. Ela deverá definir o comportamento necessário para que uma nave seja considerada capaz de combate:</p>
+        <div class="code-block">
+          <div class="cb-head"><span>TypeScript</span></div>
+          <pre>attack(target: Spacecraft): number;</pre>
+        </div>
+        <p>O método deve retornar a quantidade de dano causado.</p>
+      </section>
+
+      <!-- PARTE 3 -->
+      <section id="parte3">
+        <span class="part-tag iface">PARTE 3</span>
+        <h2>Interface <code class="inline">CargoCarrier</code></h2>
+        <p>Nem toda espaçonave transporta cargas. Crie uma interface chamada <code class="inline">CargoCarrier</code>:</p>
+        <div class="code-block">
+          <div class="cb-head"><span>TypeScript</span></div>
+          <pre>loadCargo(amount: number): void;
+unloadCargo(amount: number): void;
+getCargoCapacity(): number;
+getCurrentCargo(): number;</pre>
+        </div>
+        <p>A capacidade de carga deverá ser definida pela classe que implementar a interface.</p>
+      </section>
+
+      <!-- PARTE 4 -->
+      <section id="parte4">
+        <span class="part-tag iface">PARTE 4</span>
+        <h2>Interface <code class="inline">Exploratory</code></h2>
+        <p>Crie uma interface chamada <code class="inline">Exploratory</code>, para representar qualquer objeto capaz de realizar exploração espacial:</p>
+        <div class="code-block">
+          <div class="cb-head"><span>TypeScript</span></div>
+          <pre>explore(location: string): string;
+collectData(): string;</pre>
+        </div>
+      </section>
+
+      <hr class="div">
+
+      <!-- PARTE 5 -->
+      <section id="parte5">
+        <span class="part-tag class">PARTE 5</span>
+        <h2><code class="inline">Fighter</code></h2>
+        <p>Crie uma classe <code class="inline">Fighter</code>. Ela deverá herdar de <code class="inline">Spacecraft</code> (que agora é <code class="inline">abstract</code> — isso não muda nada aqui, a herança funciona normalmente). Uma nave de combate deverá implementar <code class="inline">CombatCapable</code>:</p>
+        <div class="code-block">
+          <div class="cb-head"><span>TypeScript</span></div>
+          <pre>class Fighter extends Spacecraft implements CombatCapable</pre>
+        </div>
+        <p>A classe deverá possuir alguma característica específica de uma nave de combate, por exemplo <code class="inline">weaponPower</code>. Esse atributo deverá ser encapsulado.</p>
+        <p>Implemente o método <code class="inline">attack(target: Spacecraft): number</code>. O ataque deverá:</p>
+        <ol>
+          <li>Verificar se a nave está operacional;</li>
+          <li>Calcular o dano;</li>
+          <li>Aplicar o dano ao alvo;</li>
+          <li>Retornar o dano causado.</li>
+        </ol>
+      </section>
+
+      <!-- PARTE 6 -->
+      <section id="parte6">
+        <span class="part-tag class">PARTE 6</span>
+        <h2><code class="inline">TransportShip</code></h2>
+        <p>Crie uma classe <code class="inline">TransportShip</code>, herdando de <code class="inline">Spacecraft</code> e implementando <code class="inline">CargoCarrier</code>. Ela deverá possuir uma capacidade máxima de carga, por exemplo <code class="inline">cargoCapacity</code> e <code class="inline">currentCargo</code>, ambos encapsulados.</p>
+        <ul>
+          <li><code class="inline">loadCargo()</code> deve impedir que a quantidade transportada ultrapasse a capacidade máxima.</li>
+          <li><code class="inline">unloadCargo()</code> não pode permitir que a quantidade de carga fique abaixo de <code class="inline">0</code>.</li>
+        </ul>
+      </section>
+
+      <!-- PARTE 7 -->
+      <section id="parte7">
+        <span class="part-tag class">PARTE 7</span>
+        <h2><code class="inline">ExplorationShip</code></h2>
+        <p>Crie uma classe <code class="inline">ExplorationShip</code>, herdando de <code class="inline">Spacecraft</code> e implementando <code class="inline">Exploratory</code>. A nave deverá conseguir explorar diferentes locais. Por exemplo:</p>
+        <div class="code-block">
+          <div class="cb-head"><span>TypeScript</span></div>
+          <pre>explore("Mars")</pre>
+        </div>
+        <p>poderia retornar uma mensagem indicando que a nave iniciou uma exploração em Marte. O método <code class="inline">collectData()</code> deverá retornar uma mensagem informando que dados científicos foram coletados. A exploração deverá consumir combustível.</p>
+      </section>
+
+      <!-- PARTE 8 -->
+      <section id="parte8">
+        <span class="part-tag class">PARTE 8</span>
+        <h2><code class="inline">MultiPurposeShip</code> — múltiplas funções</h2>
+        <p>Uma das partes mais importantes do exercício. Crie uma classe <code class="inline">MultiPurposeShip</code>, herdando de <code class="inline">Spacecraft</code>, mas implementando <strong>mais de uma interface</strong>: capaz de combate, capaz de transportar carga e capaz de explorar.</p>
+        <div class="code-block">
+          <div class="cb-head"><span>TypeScript</span></div>
+          <pre>class MultiPurposeShip
+    extends Spacecraft
+    implements CombatCapable, CargoCarrier, Exploratory</pre>
+        </div>
+        <p>Essa classe deverá implementar <strong>todos os métodos exigidos pelas três interfaces</strong>.</p>
+      </section>
+
+      <hr class="div">
+
+      <!-- PARTE 9 -->
+      <section id="parte9">
+        <span class="part-tag think">PARTE 9</span>
+        <h2>O verdadeiro propósito das interfaces</h2>
+        <p>Agora crie funções que recebem <strong>interfaces</strong> como parâmetro, e não classes específicas.</p>
+        <div class="code-block">
+          <div class="cb-head"><span>TypeScript</span></div>
+          <pre>function startCombat(ship: CombatCapable, target: Spacecraft): void</pre>
+        </div>
+        <p>Essa função deverá utilizar <code class="inline">ship.attack(target)</code>. Observe que a função não deve receber <code class="inline">Fighter</code> — ela deve receber <code class="inline">CombatCapable</code>. Isso significa que qualquer objeto que saiba executar <code class="inline">attack()</code> poderá ser utilizado.</p>
+        <div class="code-block">
+          <div class="cb-head"><span>TypeScript</span></div>
+          <pre>function transportCargo(
+    ship: CargoCarrier,
+    amount: number
+): void</pre>
+        </div>
+        <p>Essa função deverá utilizar os métodos definidos pela interface <code class="inline">CargoCarrier</code>.</p>
+        <div class="code-block">
+          <div class="cb-head"><span>TypeScript</span></div>
+          <pre>function performExploration(
+    ship: Exploratory,
+    location: string
+): void</pre>
+        </div>
+        <p>Ela deverá utilizar <code class="inline">ship.explore(location)</code> e <code class="inline">ship.collectData()</code>.</p>
+      </section>
+
+      <!-- PARTE 10 -->
+      <section id="parte10">
+        <span class="part-tag think">PARTE 10</span>
+        <h2>O conceito importante</h2>
+        <p>Agora teste algo interessante. Crie uma nave de cada tipo:</p>
+        <div class="code-block">
+          <div class="cb-head"><span>TypeScript</span></div>
+          <pre>const fighter = new Fighter(...);
+const transportShip = new TransportShip(...);
+const explorationShip = new ExplorationShip(...);
+const multiPurposeShip = new MultiPurposeShip(...);</pre>
+        </div>
+        <p>Depois: <code class="inline">startCombat(fighter, transportShip)</code> — isso deve funcionar porque <code class="inline">Fighter implements CombatCapable</code>.</p>
+        <p>Agora faça <code class="inline">startCombat(multiPurposeShip, fighter)</code>. Também deve funcionar, pelo mesmo motivo: <code class="inline">MultiPurposeShip implements CombatCapable</code>.</p>
+        <p>Teste ainda <code class="inline">performExploration(explorationShip, "Mars")</code> e <code class="inline">performExploration(multiPurposeShip, "Jupiter")</code>. Ambos devem funcionar. O sistema não precisa saber se recebeu uma <code class="inline">ExplorationShip</code> ou uma <code class="inline">MultiPurposeShip</code> — ele só precisa saber: <em>"esse objeto é capaz de realizar exploração?"</em> Essa é uma das principais utilidades das interfaces.</p>
+      </section>
+
+      <!-- PARTE 11 -->
+      <section id="parte11">
+        <span class="part-tag think">PARTE 11</span>
+        <h2>Interface como tipo</h2>
+        <p>Crie um array de naves capazes de combate e adicione as naves compatíveis:</p>
+        <div class="code-block">
+          <div class="cb-head"><span>TypeScript</span></div>
+          <pre>const combatShips: CombatCapable[] = [];
+
+combatShips.push(fighter);
+combatShips.push(multiPurposeShip);</pre>
+        </div>
+        <p>Faça o mesmo para naves exploradoras (<code class="inline">Exploratory[]</code>) e para naves capazes de transportar carga (<code class="inline">CargoCarrier[]</code>). Observe que esses arrays não precisam conhecer as classes concretas — eles trabalham apenas com os contratos definidos pelas interfaces.</p>
+      </section>
+
+      <!-- PARTE 12 -->
+      <section id="parte12">
+        <span class="part-tag think">PARTE 12</span>
+        <h2>Uma nave pode estar em vários grupos</h2>
+        <p>A mesma <code class="inline">multiPurposeShip</code> deverá poder ser adicionada aos três arrays, porque implementa as três interfaces:</p>
+        <div class="code-block">
+          <div class="cb-head"><span>TypeScript</span></div>
+          <pre>combatShips.push(multiPurposeShip);
+explorationShips.push(multiPurposeShip);
+cargoShips.push(multiPurposeShip);</pre>
+        </div>
+        <div class="tree-diagram">CombatCapable          CargoCarrier          Exploratory
+      │                      │                     │
+      ├── Fighter            ├── TransportShip     ├── ExplorationShip
+      └── MultiPurposeShip   └── MultiPurposeShip  └── MultiPurposeShip</div>
+        <p>Imagine que cada interface representa uma <strong>capacidade</strong>. Uma classe pode possuir várias capacidades ao mesmo tempo.</p>
+      </section>
+
+      <hr class="div">
+
+      <!-- PARTE 13 -->
+      <section id="parte13">
+        <span class="part-tag iface">PARTE 13</span>
+        <h2>Uma interface mais completa — <code class="inline">Repairable</code></h2>
+        <p>Crie uma interface <code class="inline">Repairable</code>, representando qualquer objeto que possa ser reparado:</p>
+        <div class="code-block">
+          <div class="cb-head"><span>TypeScript</span></div>
+          <pre>repair(): void;
+getRepairCost(): number;</pre>
+        </div>
+        <p>Pense: quais classes deveriam implementar essa interface? Você pode decidir quais objetos do sistema possuem essa capacidade e implementar a interface nas classes adequadas.</p>
+      </section>
+
+      <!-- PARTE 14 -->
+      <section id="parte14">
+        <span class="part-tag think">PARTE 14</span>
+        <h2>Interfaces não são classes</h2>
+        <p>Crie uma função <code class="inline">repairObject(object: Repairable): void</code> que execute <code class="inline">object.repair()</code>, e teste com objetos que implementam <code class="inline">Repairable</code>.</p>
+        <div class="callout reflect">
+          <h4>💬 Para responder no seu projeto</h4>
+          <ul>
+            <li>Por que não podemos fazer <code class="inline">new Repairable()</code>?</li>
+            <li>Por que uma interface não deve ser utilizada para criar objetos?</li>
+            <li>Qual é a diferença entre <code class="inline">interface CombatCapable</code> e <code class="inline">class Fighter</code>? Explique com suas próprias palavras.</li>
+          </ul>
+        </div>
+      </section>
+
+      <!-- PARTE 15 -->
+      <section id="parte15">
+        <span class="part-tag think">PARTE 15</span>
+        <h2>Interfaces e encapsulamento</h2>
+        <p>Imagine que você tenha:</p>
+        <div class="code-block">
+          <div class="cb-head"><span>TypeScript</span></div>
+          <pre>interface SpacecraftInfo {
+    id: number;
+    name: string;
+}
+
+class Fighter implements SpacecraftInfo {
+    private id: number;
+    private name: string;
+}</pre>
+        </div>
+        <p>O TypeScript apresentará um erro. Explique por que isso acontece — e depois altere a solução para que a classe continue utilizando encapsulamento. Uma possibilidade é utilizar métodos:</p>
+        <div class="code-block">
+          <div class="cb-head"><span>TypeScript</span></div>
+          <pre>interface SpacecraftInfo {
+    getId(): number;
+    getName(): string;
+}</pre>
+        </div>
+        <p>A classe poderá manter <code class="inline">private id: number</code> e <code class="inline">private name: string</code>, fornecendo <code class="inline">getId()</code> e <code class="inline">getName()</code> como forma pública de acesso.</p>
+        <div class="callout reflect">
+          <h4>💬 Pergunta</h4>
+          <p>Qual é a vantagem de a interface exigir <code class="inline">getId(): number</code> em vez de <code class="inline">id: number</code>? Explique com suas próprias palavras.</p>
+        </div>
+      </section>
+
+      <!-- PARTE 16 -->
+      <section id="parte16">
+        <span class="part-tag think">PARTE 16</span>
+        <h2>Interface como contrato</h2>
+        <p>Uma classe que implementa uma interface pode armazenar seus dados da maneira que quiser. <code class="inline">Fighter</code> pode guardar <code class="inline">weaponPower</code>, enquanto <code class="inline">MultiPurposeShip</code> pode guardar <code class="inline">laserLevel</code> e <code class="inline">energy</code> — implementações diferentes, mesmo contrato: <code class="inline">CombatCapable</code>.</p>
+        <div class="callout reflect">
+          <h4>💬 Para responder</h4>
+          <p>Por que isso é útil? Por que <code class="inline">function startCombat(ship: CombatCapable, target: Spacecraft)</code> é mais flexível do que <code class="inline">function startCombat(ship: Fighter, target: Spacecraft)</code>?</p>
+        </div>
+      </section>
+
+      <hr class="div">
+
+      <!-- PARTE 17 -->
+      <section id="parte17">
+        <span class="part-tag system">PARTE 17</span>
+        <h2>Sistema completo de gerenciamento — <code class="inline">Fleet</code></h2>
+        <p>Crie uma classe <code class="inline">Fleet</code>, responsável por gerenciar todas as espaçonaves. Ela deverá possuir uma coleção de <code class="inline">Spacecraft[]</code> e os métodos:</p>
+        <div class="code-block">
+          <div class="cb-head"><span>TypeScript</span></div>
+          <pre>addShip(ship: Spacecraft): void;
+removeShip(id: number): void;
+findShip(id: number): Spacecraft | undefined;
+showFleet(): void;</pre>
+        </div>
+        <p>Utilize encapsulamento — a lista de naves não deve ser diretamente acessível de fora da classe.</p>
+      </section>
+
+      <!-- PARTE 18 -->
+      <section id="parte18">
+        <span class="part-tag system">PARTE 18</span>
+        <h2>Buscar por capacidade</h2>
+        <p>Adicione à classe <code class="inline">Fleet</code> métodos capazes de retornar apenas determinadas capacidades:</p>
+        <div class="code-block">
+          <div class="cb-head"><span>TypeScript</span></div>
+          <pre>getCombatShips(): CombatCapable[]
+getCargoShips(): CargoCarrier[]
+getExplorationShips(): Exploratory[]</pre>
+        </div>
+        <p>Você deverá analisar as naves armazenadas e identificar quais implementam cada capacidade. Uma nave pode aparecer em mais de uma categoria.</p>
+      </section>
+
+      <!-- PARTE 19 -->
+      <section id="parte19">
+        <span class="part-tag system">PARTE 19</span>
+        <h2><code class="inline">main.ts</code></h2>
+        <p>No arquivo <code class="inline">main.ts</code>, crie uma frota contendo pelo menos:</p>
+        <ul>
+          <li>2 <code class="inline">Fighter</code></li>
+          <li>2 <code class="inline">TransportShip</code></li>
+          <li>2 <code class="inline">ExplorationShip</code></li>
+          <li>1 <code class="inline">MultiPurposeShip</code></li>
+        </ul>
+        <p>Depois:</p>
+        <ol>
+          <li>Exiba todas as naves;</li>
+          <li>Realize pelo menos um combate;</li>
+          <li>Transporte algumas cargas;</li>
+          <li>Realize uma exploração;</li>
+          <li>Cause dano em uma nave;</li>
+          <li>Repare uma nave;</li>
+          <li>Recupere combustível;</li>
+          <li>Liste as naves de combate;</li>
+          <li>Liste as naves de transporte;</li>
+          <li>Liste as naves de exploração.</li>
+        </ol>
+      </section>
+
+      <hr class="div">
+
+      <!-- DESAFIO ADICIONAL -->
+      <section id="desafio-adicional">
+        <span class="part-tag iface">DESAFIO ADICIONAL</span>
+        <h2>Sistema de capacidades</h2>
+        <p>Imagine que sua organização espacial queira adicionar novas capacidades no futuro. Crie as interfaces <code class="inline">Refuelable</code>, <code class="inline">Scannable</code> e <code class="inline">Dockable</code>, cada uma definindo um comportamento específico.</p>
+        <p>Crie pelo menos uma classe que implemente uma dessas interfaces, e depois uma função que receba essa interface como parâmetro. Por exemplo:</p>
+        <div class="code-block">
+          <div class="cb-head"><span>TypeScript</span></div>
+          <pre>function scanObject(object: Scannable): void</pre>
+        </div>
+        <p>A função não deve saber qual é a classe concreta do objeto — ela só precisa saber que o objeto é <code class="inline">Scannable</code>.</p>
+      </section>
+
+      <!-- DESAFIO FINAL -->
+      <section id="desafio-final">
+        <span class="part-tag class">DESAFIO FINAL</span>
+        <h2>Projeto aberto — <code class="inline">SpaceDrone</code></h2>
+        <p>Imagine que amanhã a organização compre uma nova tecnologia de drones espaciais. Crie uma classe <code class="inline">SpaceDrone</code>. Esse drone <strong>não precisa necessariamente herdar de <code class="inline">Spacecraft</code></strong>. Entretanto, ele deverá ser capaz de explorar, coletar dados e escanear objetos — faça-o implementar as interfaces necessárias.</p>
+        <p>Depois utilize <code class="inline">performExploration(...)</code> com o seu <code class="inline">SpaceDrone</code>.</p>
+        <div class="callout tree">
+          <h4>🔍 Observe algo importante</h4>
+          <p>Se funcionar, significa que <code class="inline">performExploration(ship: Exploratory, location: string)</code> não está interessada em saber se recebeu um <code class="inline">ExplorationShip</code>, um <code class="inline">MultiPurposeShip</code> ou um <code class="inline">SpaceDrone</code>. Ela só está interessada em saber: <em>"esse objeto implementa <code class="inline">Exploratory</code>?"</em></p>
+        </div>
+      </section>
+
+      <hr class="div">
+
+      <!-- PERGUNTAS -->
+      <section id="perguntas">
+        <span class="part-tag think">REFLEXÃO</span>
+        <h2>Perguntas para reflexão</h2>
+        <p>Responda no final do projeto:</p>
+        <div class="qa-grid">
+          <div class="qa-item"><span class="qnum">01</span><p>Qual é a diferença entre uma classe e uma interface?</p></div>
+          <div class="qa-item"><span class="qnum">02</span><p>Uma interface pode criar objetos diretamente? Explique.</p></div>
+          <div class="qa-item"><span class="qnum">03</span><p>Qual é a função do <code class="inline">implements</code>?</p></div>
+          <div class="qa-item"><span class="qnum">04</span><p>Uma classe pode implementar mais de uma interface? Dê um exemplo utilizando o projeto.</p></div>
+          <div class="qa-item"><span class="qnum">05</span><p>Uma classe pode herdar de duas classes diferentes? Explique.</p></div>
+          <div class="qa-item"><span class="qnum">06</span><p>Qual é a diferença entre <code class="inline">extends</code> e <code class="inline">implements</code>?</p></div>
+          <div class="qa-item"><span class="qnum">07</span><p>Por que <code class="inline">CombatCapable</code> não deveria necessariamente ser uma classe?</p></div>
+          <div class="qa-item"><span class="qnum">08</span><p>Por que uma função que recebe <code class="inline">CombatCapable</code> é mais flexível do que uma que recebe <code class="inline">Fighter</code>?</p></div>
+          <div class="qa-item"><span class="qnum">09</span><p>Como as interfaces ajudam a manter o encapsulamento?</p></div>
+          <div class="qa-item"><span class="qnum">10</span><p>Uma interface precisa representar obrigatoriamente os atributos internos de uma classe? Explique com o exemplo de <code class="inline">getId(): number</code>.</p></div>
+          <div class="qa-item"><span class="qnum">11</span><p>Uma classe pode implementar uma interface sem possuir exatamente os mesmos atributos internos definidos por ela? Explique.</p></div>
+          <div class="qa-item"><span class="qnum">12</span><p>Por que uma interface pode ser entendida como um <strong>contrato</strong>?</p></div>
+          <div class="qa-item"><span class="qnum">13</span><p>Por que <code class="inline">Spacecraft</code> foi declarada como <code class="inline">abstract</code>? O que isso impede, e o que continua funcionando normalmente?</p></div>
+        </div>
+      </section>
+
+      <!-- CRITERIOS -->
+      <section id="criterios">
+        <span class="part-tag think">AVALIAÇÃO</span>
+        <h2>Critérios de avaliação</h2>
+        <div class="criteria-grid">
+          <div><strong>Organização</strong> · classes e interfaces separadas adequadamente</div>
+          <div><strong>Classes e objetos</strong> · criação e utilização correta</div>
+          <div><strong>Encapsulamento</strong> · uso adequado de private, getters e setters</div>
+          <div><strong>Constructors</strong> · inicialização correta dos objetos</div>
+          <div><strong>Herança</strong> · utilização correta da classe base abstrata</div>
+          <div><strong>Interfaces</strong> · criação e implementação correta</div>
+          <div><strong>Múltiplas interfaces</strong> · uma classe com diferentes capacidades</div>
+          <div><strong>Polimorfismo</strong> · uso de objetos através de tipos de interface</div>
+          <div><strong>Arrays tipados</strong> · uso de interfaces como tipos</div>
+          <div><strong>Lógica</strong> · funcionamento correto das operações</div>
+          <div><strong>Código em inglês</strong> · classes, métodos, atributos e variáveis</div>
+          <div><strong>Legibilidade</strong> · código dividido em arquivos adequados</div>
+        </div>
+      </section>
+
+      <!-- CONCLUSAO -->
+      <section id="conclusao">
+        <span class="part-tag think">IDEIA CENTRAL</span>
+        <h2>O que você deve perceber ao final</h2>
+        <p>O objetivo principal não é simplesmente conseguir escrever <code class="inline">implements SomeInterface</code>. O objetivo é entender:</p>
+        <div class="callout tree">
+          <p>Uma <strong>classe</strong> representa um objeto e sua implementação.</p>
+          <p>Uma <strong>interface</strong> representa um contrato ou uma capacidade que um objeto oferece.</p>
+          <p>Uma classe <strong>abstrata</strong> representa uma base que só existe através das suas subclasses.</p>
+        </div>
+        <p>Por isso, uma mesma classe pode possuir várias capacidades ao mesmo tempo, e diferentes classes podem compartilhar a mesma capacidade. O sistema passa a trabalhar com <strong>o que um objeto é capaz de fazer</strong>, e não necessariamente com <strong>qual classe criou aquele objeto</strong>. Essa é uma das ideias fundamentais por trás do uso de interfaces em programação orientada a objetos.</p>
+      </section>
+
+    </div>
+  </main>
+</div>
+
+<footer>Starfleet Command · Exercício de POO em TypeScript</footer>
+
+<script>
+  // mobile sidebar toggle
+  const sidebar = document.getElementById('sidebar');
+  const toggle = document.getElementById('menuToggle');
+  toggle.addEventListener('click', () => sidebar.classList.toggle('open'));
+  document.querySelectorAll('.sidebar a').forEach(a => {
+    a.addEventListener('click', () => sidebar.classList.remove('open'));
+  });
+
+  // scroll-spy active nav link
+  const links = Array.from(document.querySelectorAll('.sidebar a'));
+  const sections = links
+    .map(a => document.querySelector(a.getAttribute('href')))
+    .filter(Boolean);
+
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      const id = '#' + entry.target.id;
+      const link = links.find(a => a.getAttribute('href') === id);
+      if (!link) return;
+      if (entry.isIntersecting) {
+        links.forEach(l => l.classList.remove('active'));
+        link.classList.add('active');
+      }
+    });
+  }, { rootMargin: '-15% 0px -70% 0px', threshold: 0 });
+
+  sections.forEach(sec => observer.observe(sec));
+</script>
+
+</body>
+</html>
